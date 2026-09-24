@@ -36,8 +36,8 @@ mkdir src
 `src/index.ts` 初始内容：
 
 ```typescript
-const greet = (name: string): string => `Hello, ${name}`
-console.log(greet("TypeScript"))
+const greet = (name: string): string => `Hello, ${name}`;
+console.log(greet('TypeScript'));
 ```
 
 ---
@@ -88,14 +88,14 @@ TS 7.0 **不提供编程用 Compiler API**（`ts.ScriptTarget`、`ts.sys` 等全
 
 关键选项说明：
 
-| 选项                               | 作用                          |
-|----------------------------------|-----------------------------|
-| `strict: true`                   | 开启所有严格类型检查                  |
-| `module: "nodenext"`             | 使用 Node.js 原生 ESM 模块解析      |
-| `target: "esnext"`               | 编译到最新 ES 标准                 |
+| 选项                             | 作用                                    |
+| -------------------------------- | --------------------------------------- |
+| `strict: true`                   | 开启所有严格类型检查                    |
+| `module: "nodenext"`             | 使用 Node.js 原生 ESM 模块解析          |
+| `target: "esnext"`               | 编译到最新 ES 标准                      |
 | `verbatimModuleSyntax: true`     | 禁止 `import type` 以外的类型导入被擦除 |
-| `noUncheckedIndexedAccess: true` | 索引访问结果自动加 `undefined`       |
-| `skipLibCheck: true`             | 跳过 `.d.ts` 类型检查以加速编译        |
+| `noUncheckedIndexedAccess: true` | 索引访问结果自动加 `undefined`          |
+| `skipLibCheck: true`             | 跳过 `.d.ts` 类型检查以加速编译         |
 
 ---
 
@@ -105,11 +105,11 @@ TS 7.0 **不提供编程用 Compiler API**（`ts.ScriptTarget`、`ts.sys` 等全
 npm install -D tsx npm-run-all @types/node
 ```
 
-| 包             | 用途                                |
-|---------------|-----------------------------------|
+| 包            | 用途                                               |
+| ------------- | -------------------------------------------------- |
 | `tsx`         | 直接运行 `.ts` 文件，无需预编译；支持 `watch` 模式 |
-| `npm-run-all` | 并行/串行运行多个 npm scripts             |
-| `@types/node` | Node.js 类型声明                      |
+| `npm-run-all` | 并行/串行运行多个 npm scripts                      |
+| `@types/node` | Node.js 类型声明                                   |
 
 在 `package.json` 中添加脚本：
 
@@ -179,46 +179,46 @@ npm install -D "@typescript/native@npm:typescript@^7.0.2"
 npm install -D eslint @eslint/js typescript-eslint @stylistic/eslint-plugin
 ```
 
-| 包                          | 用途                         |
-|----------------------------|----------------------------|
+| 包                         | 用途                            |
+| -------------------------- | ------------------------------- |
 | `eslint`                   | ESLint 10，flat config 原生支持 |
 | `@eslint/js`               | ESLint 官方 recommended 规则集  |
-| `typescript-eslint`        | TS parser + TS 专用规则        |
-| `@stylistic/eslint-plugin` | 代码风格规则（分号、尾逗号等）            |
+| `typescript-eslint`        | TS parser + TS 专用规则         |
+| `@stylistic/eslint-plugin` | 代码风格规则（分号、尾逗号等）  |
 
 ### 创建 eslint.config.mjs
 
 ```javascript
 // ESLint flat config（ESLint 9+ / 10）
-import js from '@eslint/js'
-import tseslint from 'typescript-eslint'
-import stylistic from '@stylistic/eslint-plugin'
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import stylistic from '@stylistic/eslint-plugin';
 
 export default tseslint.config(
-    {
-        ignores: ['dist/**'],
-    },
+  {
+    ignores: ['dist/**'],
+  },
 
-    // 对应原 tslint:recommended
-    js.configs.recommended,
-    ...tseslint.configs.recommended,
+  // 对应原 tslint:recommended
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
 
-    {
-        files: ['**/*.ts'],
-        plugins: {
-            '@stylistic': stylistic,
-        },
-        rules: {
-            '@stylistic/semi': 'off',                                  // 不强制分号
-            '@stylistic/array-bracket-newline': ['error', 'always'],   // 数组 [ 后 ] 前必须换行
-            '@stylistic/comma-dangle': ['error', 'always-multiline'],   // 多行尾逗号必须
-        },
+  {
+    files: ['**/*.ts'],
+    plugins: {
+      '@stylistic': stylistic,
     },
-)
+    rules: {
+      '@stylistic/semi': 'off', // 不强制分号
+      '@stylistic/array-bracket-newline': ['error', 'always'], // 数组 [ 后 ] 前必须换行
+      '@stylistic/comma-dangle': ['error', 'always-multiline'], // 多行尾逗号必须
+    },
+  },
+);
 ```
 
 > **踩坑**：`@stylistic/array-bracket-newline` 的值必须写成 `['error', 'always']`，不能只写 `"always"`。ESLint 规则格式是
-`['severity', 'options']`，如果只传一个字符串，ESLint 会把它当严重级别解析，导致启动崩溃，**所有规则都不生效**。
+> `['severity', 'options']`，如果只传一个字符串，ESLint 会把它当严重级别解析，导致启动崩溃，**所有规则都不生效**。
 
 ### 删除 tslint.json
 
@@ -303,15 +303,15 @@ npm install -D onchange
 
 ## 常用命令速查
 
-| 命令                   | 作用                                    |
-|----------------------|---------------------------------------|
+| 命令                 | 作用                                                          |
+| -------------------- | ------------------------------------------------------------- |
 | `npm run dev`        | 并行启动：运行 + 类型检查 + ESLint 自动修复（均监听文件变化） |
-| `npm run start`      | 直接运行 `src/index.ts`（tsx，无监听）          |
-| `npm run typecheck`  | 一次性类型检查（不产出文件）                        |
-| `npm run lint`       | 一次性 ESLint 检查（不修复）                    |
-| `npm run build`      | 编译到 `dist/`                           |
-| `npm run serve`      | 运行编译产物 `dist/index.js`                |
-| `npx eslint . --fix` | 手动触发全项目 ESLint 自动修复                   |
+| `npm run start`      | 直接运行 `src/index.ts`（tsx，无监听）                        |
+| `npm run typecheck`  | 一次性类型检查（不产出文件）                                  |
+| `npm run lint`       | 一次性 ESLint 检查（不修复）                                  |
+| `npm run build`      | 编译到 `dist/`                                                |
+| `npm run serve`      | 运行编译产物 `dist/index.js`                                  |
+| `npx eslint . --fix` | 手动触发全项目 ESLint 自动修复                                |
 
 ---
 
