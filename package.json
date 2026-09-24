@@ -25,5 +25,8 @@
     "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.70.1"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.3"
   }
 }
