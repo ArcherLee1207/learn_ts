@@ -8,14 +8,16 @@
 
 ```
 learn_ts/
-├── .idea/                  # WebStorm 项目配置
+├── .idea/                  # WebStorm 项目配置（被 .gitignore 忽略）
 ├── src/
 │   └── index.ts            # 入口源码
-├── eslint.config.mjs       # ESLint flat config
+├── .env                    # 环境变量（由 dotenv 读取）
+├── .gitignore
+├── eslint.config.mjs       # ESLint flat config（格式化规则也全部在这里）
 ├── tsconfig.json           # TypeScript 编译配置
 ├── package.json            # 依赖与脚本
-├── package-lock.json
-└── SETUP_GUIDE.md          # 本文件
+├── package-lock.json       # 依赖锁定文件，需要提交到 git
+└── README.md               # 本文件
 ```
 
 ---
@@ -36,8 +38,8 @@ mkdir src
 `src/index.ts` 初始内容：
 
 ```typescript
-const greet = (name: string): string => `Hello, ${name}`;
-console.log(greet('TypeScript'));
+const greet = (name: string): string => `Hello, ${name}`
+console.log(greet('TypeScript'))
 ```
 
 ---
@@ -64,25 +66,51 @@ TS 7.0 **不提供编程用 Compiler API**（`ts.ScriptTarget`、`ts.sys` 等全
 
 ## 第 3 步：配置 tsconfig.json
 
-```json
+当前配置（带注释，TS 的 JSON 支持注释）：
+
+```jsonc
 {
+  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    "module": "nodenext",
+    // File Layout
+    // "rootDir": "./src",
+    // "outDir": "./dist",
+
+    // Environment Settings
+    // See also https://aka.ms/tsconfig/module
+    "module": "esnext",
     "target": "esnext",
     "types": [],
+    // For nodejs:
+    // "lib": ["esnext"],
+    // "types": ["node"],
+    // and npm install -D @types/node
+
+    // Other Outputs
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
+    // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
+    // Style Options
+    // "noImplicitReturns": true,
+    // "noImplicitOverride": true,
+    // "noUnusedLocals": true,
+    // "noUnusedParameters": true,
+    // "noFallthroughCasesInSwitch": true,
+    // "noPropertyAccessFromIndexSignature": true,
+
+    // Recommended Options
     "strict": true,
     "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
+    "verbatimModuleSyntax": false,
+    "isolatedModules": false,
     "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
+    "moduleDetection": "auto",
     "skipLibCheck": true
-  }
+  },
+  "include": ["src"]
 }
 ```
 
@@ -91,10 +119,12 @@ TS 7.0 **不提供编程用 Compiler API**（`ts.ScriptTarget`、`ts.sys` 等全
 | 选项                             | 作用                                    |
 | -------------------------------- | --------------------------------------- |
 | `strict: true`                   | 开启所有严格类型检查                    |
-| `module: "nodenext"`             | 使用 Node.js 原生 ESM 模块解析          |
+| `module: "esnext"`               | 输出最新 ESM 语法（最初为 `nodenext`，实验中调整） |
 | `target: "esnext"`               | 编译到最新 ES 标准                      |
-| `verbatimModuleSyntax: true`     | 禁止 `import type` 以外的类型导入被擦除 |
+| `verbatimModuleSyntax: false`    | 不强制保留类型导入语法（最初为 `true`，实验中关闭） |
+| `isolatedModules: false`         | 不强制单文件独立编译（最初为 `true`，实验中关闭） |
 | `noUncheckedIndexedAccess: true` | 索引访问结果自动加 `undefined`          |
+| `exactOptionalPropertyTypes: true` | 可选属性不自动包含 `undefined`，要显式写 `c?: string \| undefined` 才能赋 `undefined` |
 | `skipLibCheck: true`             | 跳过 `.d.ts` 类型检查以加速编译         |
 
 ---
@@ -186,13 +216,13 @@ npm install -D eslint @eslint/js typescript-eslint @stylistic/eslint-plugin
 | `typescript-eslint`        | TS parser + TS 专用规则         |
 | `@stylistic/eslint-plugin` | 代码风格规则（分号、尾逗号等）  |
 
-### 创建 eslint.config.mjs
+### 创建 eslint.config.mjs（最初版本）
 
 ```javascript
 // ESLint flat config（ESLint 9+ / 10）
-import js from '@eslint/js';
-import tseslint from 'typescript-eslint';
-import stylistic from '@stylistic/eslint-plugin';
+import js from '@eslint/js'
+import tseslint from 'typescript-eslint'
+import stylistic from '@stylistic/eslint-plugin'
 
 export default tseslint.config(
   {
@@ -214,11 +244,13 @@ export default tseslint.config(
       '@stylistic/comma-dangle': ['error', 'always-multiline'], // 多行尾逗号必须
     },
   },
-);
+)
 ```
 
 > **踩坑**：`@stylistic/array-bracket-newline` 的值必须写成 `['error', 'always']`，不能只写 `"always"`。ESLint 规则格式是
 > `['severity', 'options']`，如果只传一个字符串，ESLint 会把它当严重级别解析，导致启动崩溃，**所有规则都不生效**。
+>
+> 注：该规则在[第 9 步](#第-9-步移除-prettier格式化统一收归-eslint最新状态)调整为 `{ minItems: 2 }`，完整配置也以第 9 步为准。
 
 ### 删除 tslint.json
 
@@ -259,13 +291,259 @@ npm install -D onchange
 
 ---
 
-## 第 7 步：在 WebStorm 中启用 ESLint
+## 第 7 步：使用 dotenv 管理环境变量
+
+安装运行时依赖 `dotenv`（不加 `-D`，上线运行时也需要）：
+
+```bash
+npm install dotenv
+```
+
+在项目根目录创建 `.env` 文件：
+
+```ini
+AUTHOR=ArcherLee
+```
+
+在入口文件**最顶部**通过副作用导入加载配置，之后即可从 `process.env` 读取：
+
+```typescript
+import 'dotenv/config'
+
+console.log(process.env.AUTHOR) // 拿变量 AUTHOR
+```
+
+> 提示：本项目的 `.env` 只含非敏感的 `AUTHOR`，所以直接提交进了 git。真实项目中 `.env` 通常包含密码、密钥等敏感信息，
+> 应把 `.env` 加入 `.gitignore`，改为提交一份 `.env.example` 模板。
+
+---
+
+## 第 8 步：引入 Prettier（一段弯路，后已移除）
+
+这一步曾用来与 ESLint 分工：Prettier 管格式、ESLint 管代码质量。
+
+```bash
+npm install -D prettier eslint-config-prettier
+```
+
+- `eslint-config-prettier`：关闭 ESLint 中所有与 Prettier 冲突的格式规则
+- `.prettierrc.json` 当时的内容：
+
+```json
+{
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "arrowParens": "always",
+  "endOfLine": "lf"
+}
+```
+
+- `.prettierignore`：忽略 `node_modules`、`dist`、`package-lock.json` 等
+- 脚本：`"format": "prettier --write ."`、`"format:check": "prettier --check ."`，并把 `format` 加进了 `dev` 并行任务
+
+### 为什么又移除了
+
+实际使用中发现 `@stylistic` 的格式规则比 Prettier **更细化、更可控**，而两套格式化工具并存时，保存文件触发的
+`eslint --fix` 与 Prettier 会**反复互相覆盖**（典型如分号：Prettier 要加分号、ESLint 风格是无分号），文件在两种格式间
+来回横跳。最终决定：**一个项目只保留一个格式化工具**，格式化全部交给 ESLint `@stylistic`。
+
+---
+
+## 第 9 步：移除 Prettier，格式化统一收归 ESLint（最新状态）
+
+对应提交：`refactor: 迁移 Prettier 配置到 ESLint 并移除 Prettier 依赖`。
+
+### 9.1 卸载并删除配置文件
+
+```bash
+npm remove prettier eslint-config-prettier
+rm .prettierrc.json .prettierignore
+```
+
+### 9.2 Prettier 选项 → @stylistic 规则迁移对照
+
+| Prettier 选项                | 迁移后的 @stylistic 规则                                                                 |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `tabWidth: 2`                | `'@stylistic/indent': ['error', 2]`                                                      |
+| `semi: true`                 | `'@stylistic/semi': ['error', 'never', { beforeStatementContinuationChars: 'always' }]`。迁移时乘势统一为项目原本的**无分号**风格；当行首是 `[` 或 `(` 时自动补前导分号，防止与上一行连成表达式 |
+| `singleQuote: true`          | `'@stylistic/quotes': ['error', 'single', { avoidEscape: true, allowTemplateLiterals: 'always' }]` |
+| `trailingComma: 'all'`       | `'@stylistic/comma-dangle'` 的**对象形式**，`arrays`/`objects`/`imports`/`exports`/`functions` 五项全部设为 `'always-multiline'`。注意 @stylistic **不接受字符串 `'all'`** |
+| `arrowParens: 'always'`      | `'@stylistic/arrow-parens': ['error', 'always']`                                         |
+| `endOfLine: 'lf'`            | `'@stylistic/linebreak-style': ['error', 'unix']`                                        |
+| `printWidth: 100`            | **无等价规则**：`max-len` 只报错不会自动折行，故不迁移，长行需手动断行                    |
+
+### 9.3 额外补齐/调整的格式规则
+
+- `'@stylistic/member-delimiter-style'`：类型字面量/接口成员统一用逗号分隔，多行时最后一个成员后也必须有逗号。
+  因为 `comma-dangle` **不监听 `TSTypeLiteral` 节点**，类型成员的尾逗号只能靠这条规则管。
+- `'@stylistic/object-curly-newline'`：`ObjectExpression`/`ObjectPattern`/`TSTypeLiteral`/`TSInterfaceBody`
+  均用 `{ minProperties: 2 }`——0~1 个成员保持一行，≥2 个才换行（`TSTypeLiteral` 必须显式配置，否则规则不覆盖）。
+- `'@stylistic/array-bracket-newline'` / `array-element-newline`：从最初的 `'always'` 改为 `{ minItems: 2 }`，
+  空数组和单元素数组保持一行。
+- `'@stylistic/space-infix-ops'`：中缀运算符两侧必须有空格（`a + b`、`x = 1`、`a ? b : c`）。
+- `'@stylistic/no-trailing-spaces'`：禁止行尾多余空格（补齐 Prettier 的默认行为，可自动修复）。
+- `'@stylistic/object-curly-spacing'`：对 TS 映射类型、枚举体、类型字面量通过 `overrides` 显式要求内侧空格。
+
+### 9.4 当前完整的 eslint.config.mjs
+
+```javascript
+// ESLint flat config（ESLint 9+ / 10）
+// 由已废弃的 tslint.json 迁移：tslint 不兼容 TypeScript 7，官方迁移方向为 typescript-eslint
+import js from '@eslint/js'
+import tseslint from 'typescript-eslint'
+import stylistic from '@stylistic/eslint-plugin'
+
+export default tseslint.config(
+  // tslint.json 原本没有忽略配置；这里仅忽略编译产物
+  {
+    ignores: ['dist/**'],
+  },
+
+  // 对应原 "extends": ["tslint:recommended"]
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+
+  {
+    files: ['**/*.ts'],
+    plugins: {
+      '@typescript-eslint': tseslint.plugin,
+      '@stylistic': stylistic,
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'error',
+
+      // Stylistic：由 .prettierrc.json 迁移的格式设置
+      '@stylistic/indent': ['error', 2], // tabWidth: 2
+      // semi: false（行首以 [ 或 ( 开头时，按 Prettier 习惯补前导分号）
+      '@stylistic/semi': [
+        'error',
+        'never',
+        { beforeStatementContinuationChars: 'always' },
+      ],
+      // singleQuote: true（允许转义例外与模板字符串）
+      '@stylistic/quotes': [
+        'error',
+        'single',
+        { avoidEscape: true, allowTemplateLiterals: 'always' },
+      ],
+      // trailingComma: 'all'（多行时数组、对象、import/export、函数参数均要尾逗号）
+      '@stylistic/comma-dangle': [
+        'error',
+        {
+          arrays: 'always-multiline',
+          objects: 'always-multiline',
+          imports: 'always-multiline',
+          exports: 'always-multiline',
+          functions: 'always-multiline',
+        },
+      ],
+      // 类型字面量/接口的成员分隔符：统一用逗号；
+      // 多行时最后一个成员后也必须有逗号，单行时不要求
+      '@stylistic/member-delimiter-style': [
+        'error',
+        {
+          multiline: { delimiter: 'comma', requireLast: true },
+          singleline: { delimiter: 'comma', requireLast: false },
+        },
+      ],
+      '@stylistic/arrow-parens': ['error', 'always'], // arrowParens: 'always'
+      '@stylistic/linebreak-style': ['error', 'unix'], // endOfLine: 'lf'
+      // 注：Prettier 的 printWidth: 100 是“换行目标宽度”，
+      // ESLint 无等价的自动折行规则（max-len 只报错不折行），故不迁移
+
+      // Stylistic：其余既有规则
+      '@stylistic/array-bracket-spacing': ['error', 'always'],
+      '@stylistic/object-curly-spacing': ['error', 'always', {
+        overrides: {
+          TSMappedType: 'always',
+          TSEnumBody: 'always',
+          TSTypeLiteral: 'always',
+        },
+      }],
+      // 对象仅在属性数 ≥ 2 时换行，0~1 个属性保持一行
+      '@stylistic/object-curly-newline': [
+        'error',
+        {
+          ObjectExpression: { minProperties: 2 },
+          ObjectPattern: { minProperties: 2 },
+          TSTypeLiteral: { minProperties: 2 },
+          TSInterfaceBody: { minProperties: 2 },
+        },
+      ],
+      '@stylistic/arrow-spacing': 'error',
+      '@stylistic/block-spacing': 'error',
+      '@stylistic/object-property-newline': 'error',
+      '@stylistic/type-annotation-spacing': 'error',
+      // 数组仅在元素数 ≥ 2 时换行，0~1 个元素保持一行
+      '@stylistic/array-bracket-newline': ['error', { minItems: 2 }],
+      '@stylistic/array-element-newline': ['error', { minItems: 2 }],
+      '@stylistic/keyword-spacing': ['error', { before: true, after: true }],
+      '@stylistic/key-spacing': ['error', { beforeColon: false }],
+      // 中缀运算符两侧必须有空格（a + b、x = 1、a ? b : c 等）
+      '@stylistic/space-infix-ops': 'error',
+      // 禁止行尾多余空格（原 Prettier 默认行为，可自动修复）
+      '@stylistic/no-trailing-spaces': 'error',
+    },
+  },
+)
+```
+
+### 9.5 脚本调整
+
+- 删除 `format` 和 `format:check` 两个脚本（格式化统一走 `eslint . --fix`）
+- `dev` 并行任务去掉 `format`，顺序调整为 lint → typecheck → run：
+
+```json
+"dev": "npm-run-all --parallel dev:lint dev:typecheck dev:run"
+```
+
+### 9.6 新增 .gitignore
+
+```
+/node_modules/
+/.idea/
+```
+
+注意 `package-lock.json` **不**被忽略，它锁定完整依赖树，需要提交到 git；`.env` 本项目也未忽略（见第 7 步的提示）。
+
+### 9.7 src/index.ts 改为类型字面量测试用例
+
+入口文件目前用于验证上面的格式规则与 `exactOptionalPropertyTypes` 等严格选项：
+
+```typescript
+let a: {
+  b?: number,
+  c?: string | undefined,
+  [key: number]: boolean,
+}
+
+a = { b: 1 }
+a = {
+  b: 1,
+  c: undefined,
+}
+a = {
+  b: 1,
+  c: 'd',
+}
+a = { 23: true }
+```
+
+要点：开启 `exactOptionalPropertyTypes` 后，可选属性 `c?: string` 的类型不自动包含 `undefined`，
+想写 `c: undefined` 必须把声明写成 `c?: string | undefined`。
+
+---
+
+## 第 10 步：在 WebStorm 中启用 ESLint
 
 1. 打开 **Settings → Languages & Frameworks → JavaScript → Code Quality Tools → ESLint**
 2. 选择 **Automatic ESLint configuration**（自动识别项目内的 ESLint 和 flat config）
 3. 勾选 **Run eslint --fix on save**（可选，保存时自动修复）
 
-> TSLint 设置页保持默认即可（包已卸载，不会再生效）。
+> 项目不再安装 Prettier 插件/配置，保存时只需 ESLint 一个修复入口，不会再有两个工具互相覆盖。
 
 ---
 
@@ -274,7 +552,7 @@ npm install -D onchange
 ```json
 {
   "scripts": {
-    "dev": "npm-run-all --parallel dev:run dev:typecheck dev:lint",
+    "dev": "npm-run-all --parallel dev:lint dev:typecheck dev:run",
     "dev:lint": "onchange \"src/**/*.ts\" -- eslint . --fix",
     "dev:run": "tsx watch src/index.ts",
     "dev:typecheck": "tsc --noEmit --watch",
@@ -295,6 +573,9 @@ npm install -D onchange
     "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.70.1"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.3"
   }
 }
 ```
@@ -305,13 +586,13 @@ npm install -D onchange
 
 | 命令                 | 作用                                                          |
 | -------------------- | ------------------------------------------------------------- |
-| `npm run dev`        | 并行启动：运行 + 类型检查 + ESLint 自动修复（均监听文件变化） |
+| `npm run dev`        | 并行启动：ESLint 自动修复 + 类型检查 + 运行（均监听文件变化） |
 | `npm run start`      | 直接运行 `src/index.ts`（tsx，无监听）                        |
 | `npm run typecheck`  | 一次性类型检查（不产出文件）                                  |
 | `npm run lint`       | 一次性 ESLint 检查（不修复）                                  |
+| `npx eslint . --fix` | 手动触发全项目 ESLint 自动修复（含格式化，已取代 Prettier）   |
 | `npm run build`      | 编译到 `dist/`                                                |
 | `npm run serve`      | 运行编译产物 `dist/index.js`                                  |
-| `npx eslint . --fix` | 手动触发全项目 ESLint 自动修复                                |
 
 ---
 
@@ -322,4 +603,14 @@ npm install -D onchange
 2. **TSLint 已废弃**：2019 年停止维护，官方迁移方向是 ESLint + typescript-eslint。
 3. **ESLint 规则格式**：`['severity', 'options']`，不能只写选项字符串，否则 ESLint 启动崩溃。
 4. **eslint-watch 不兼容 ESLint 10**：用 `onchange` 替代实现文件监听 + 自动修复。
-5. **WebStorm 缓冲区 vs 磁盘**：编辑器中未保存的修改，命令行工具（eslint、tsc）看不到。排查问题前先 Ctrl+S 保存。
+5. **格式化只保留一个工具**：Prettier 与 ESLint `@stylistic` 并存时会在保存时互相覆盖、反复横跳；统一到 `@stylistic`
+   后规则更细、可控性更强。
+6. **Prettier → @stylistic 迁移要点**：`trailingComma: 'all'` 要拆成五项 `'always-multiline'`（不接受字符串
+   `'all'`）；`printWidth` 没有等价的自动折行规则；类型字面量的尾逗号靠 `member-delimiter-style`，换行靠
+   `object-curly-newline` 显式配置 `TSTypeLiteral`。
+7. **括号换行策略**：数组用 `{ minItems: 2 }`、对象/类型字面量用 `{ minProperties: 2 }`，0~1 个成员保持一行。
+8. **dotenv 读取环境变量**：`npm install dotenv`（运行时依赖），入口顶部 `import 'dotenv/config'`，随后通过
+   `process.env` 访问；含敏感信息的 `.env` 不应提交 git。
+9. **package-lock.json 要提交**：它锁定完整依赖树的精确版本和完整性哈希，是 `npm ci` 和团队环境一致性的保证；
+   `node_modules/` 才是应该被忽略的目录。
+10. **WebStorm 缓冲区 vs 磁盘**：编辑器中未保存的修改，命令行工具（eslint、tsc）看不到。排查问题前先 Ctrl+S 保存。
